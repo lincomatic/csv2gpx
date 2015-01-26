@@ -3,6 +3,7 @@
  * convert GPS Master CSV file to GPX with HR extension
  *
  * 20150126 SCL v0.1 first rev
+ * 20150126 SCL v0.2 convert CSV from local (computer) time to GMT
  *
  */
 #include <stdio.h>
@@ -10,8 +11,10 @@
 #include <stdlib.h>
 #include <math.h>
 #include <limits.h>
+#include <ctime>
+#include <iostream>
 
-#define VERSTR "Lincomatic GPS Master CSV to GPX Converter v0.1\n\n"
+#define VERSTR "Lincomatic GPS Master CSV to GPX Converter v0.2\n\n"
 
 #define MAX_PATH 256
 #define MAX_PTS 32768
@@ -45,7 +48,6 @@ int Datum::Set(char *line)
     s = strchr(s,',');
     *(s++) = 0;
     this->time = s;
-    *(strchr(this->time,' ')) = 'T';
     s = strchr(s,',');
     *(s++) = 0;
     this->satcnt = s;
@@ -139,6 +141,36 @@ double ft2m(char *sft)
   return ft * .30480;
 }
 
+
+time_t csv2time(const char *csvtime)
+{
+  struct tm stm;
+  int i;
+  char buf[80];
+  strcpy(buf,csvtime);
+  char *s = buf;
+  s = strtok(buf,"-");
+  sscanf(s,"%d",&i);
+  stm.tm_year = i - 1900;
+  s = strtok(NULL,"-");
+  sscanf(s,"%d",&i);
+  stm.tm_mon = i - 1;
+  s = strtok(NULL," ");
+  sscanf(s,"%d",&i);
+  stm.tm_mday = i;
+  s = strtok(NULL,":");
+  sscanf(s,"%d",&i);
+  stm.tm_hour = i;
+  s = strtok(NULL,":");
+  sscanf(s,"%d",&i);
+  stm.tm_min = i;
+  s = strtok(NULL,":");
+  sscanf(s,"%d",&i);
+  stm.tm_sec = i;
+  stm.tm_isdst = -1;
+  return mktime(&stm);
+}
+
 void makeTrackPoint(Datum *dt)
 {
   char bpm[200];
@@ -150,8 +182,13 @@ void makeTrackPoint(Datum *dt)
     sprintf(bpm,"<extensions><gpxtpx:TrackPointExtension><gpxtpx:hr>%s</gpxtpx:hr></gpxtpx:TrackPointExtension></extensions>",dt->hr);
   }
 
-
-  sprintf(line,"<trkpt lat=\"%s\" lon=\"%s\"><ele>%lf</ele><time>%sZ</time>%s</trkpt>\n",dt->lat,dt->lon,ft2m(dt->alt),dt->time,bpm);
+  time_t csvtime = csv2time(dt->time);
+  char stime[80];
+  // strftime(buf, sizeof buf, "%FT%TZ", gmtime(&now));
+  // this will work too, if your compiler doesn't support %F or %T:
+  strftime(stime, sizeof(stime), "%Y-%m-%dT%H:%M:%SZ", gmtime(&csvtime));
+  
+  sprintf(line,"<trkpt lat=\"%s\" lon=\"%s\"><ele>%lf</ele><time>%s</time>%s</trkpt>\n",dt->lat,dt->lon,ft2m(dt->alt),stime,bpm);
 }
 int writeGPX(char *sport,char *fn)
 {
@@ -178,10 +215,16 @@ int writeGPX(char *sport,char *fn)
     printf("Max HR: %d\n",imaxHR);
     printf("Trackpoints %d\n", ptCnt);
 
+    time_t csvtime = csv2time(pts[0].time);
+    char stime[80];
+    // strftime(buf, sizeof buf, "%FT%TZ", gmtime(&now));
+    // this will work too, if your compiler doesn't support %F or %T:
+    strftime(stime, sizeof(stime), "%Y-%m-%dT%H:%M:%SZ", gmtime(&csvtime));
+
     // write header
-    fprintf(fp,"<?xml version=\"1.0\" encoding=\"UTF-8\"?><gpx  version=\"1.1\"  creator=\"RunKeeper - http://www.runkeeper.com\"  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"  xmlns=\"http://www.topografix.com/GPX/1/1\"  xsi:schemaLocation=\"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd\"  xmlns:gpxtpx=\"http://www.garmin.com/xmlschemas/TrackPointExtension/v1\"><trk>\n");
-    fprintf(fp,"  <name><![CDATA[%s %sZ]]></name>\n",sport,pts[0].time);
-    fprintf(fp,"  <time>%sZ</time>\n",pts[0].time);
+    fprintf(fp,"<?xml version=\"1.0\" encoding=\"UTF-8\"?><gpx  version=\"1.1\"  creator=\"csv2gpx\"  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"  xmlns=\"http://www.topografix.com/GPX/1/1\"  xsi:schemaLocation=\"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd\"  xmlns:gpxtpx=\"http://www.garmin.com/xmlschemas/TrackPointExtension/v1\"><trk>\n");
+    fprintf(fp,"  <name><![CDATA[%s %s]]></name>\n",sport,stime);
+    fprintf(fp,"  <time>%s</time>\n",stime);
     fprintf(fp,"<trkseg>\n");
     for (i=0;i < ptCnt;i++) {
       makeTrackPoint(&pts[i]);
