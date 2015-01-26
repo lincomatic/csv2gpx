@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "csv2gpx", "csv2gpx.vcxproj", "{21A264CB-5088-4CF5-B6BD-73D2A368D41E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{21A264CB-5088-4CF5-B6BD-73D2A368D41E}.Debug|Win32.ActiveCfg = Debug|Win32
+		{21A264CB-5088-4CF5-B6BD-73D2A368D41E}.Debug|Win32.Build.0 = Debug|Win32
+		{21A264CB-5088-4CF5-B6BD-73D2A368D41E}.Release|Win32.ActiveCfg = Release|Win32
+		{21A264CB-5088-4CF5-B6BD-73D2A368D41E}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
